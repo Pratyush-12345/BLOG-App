@@ -1,4 +1,4 @@
-<H1 align ="center" > AI MERN BLOG  </h1>
+<H1 align ="center" > Blog App with AI Summarizer  </h1>
 <h5  align ="center"> 
 Fullstack open source blogging application made with MongoDB, Express, React & Nodejs (MERN) </h5>
 <br/>
@@ -75,6 +75,7 @@ $ npm start (to start the backend)
 - Commenting  on the story
 - Skeleton loading effect
 - Responsive Design
+- It has AI summarizer which summarizes the blog content
 
 <br/>
 
