@@ -35,6 +35,7 @@ In the second terminal
 - cd Backend and Set environment variables in config.env under ./config
 - Create your mongoDB connection url, which you'll use as your MONGO_URI
 - Supply the following credentials
+- Use this to generate JWT secret Key in node.js `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 
 ```
 #  ---  Config.env  ---
