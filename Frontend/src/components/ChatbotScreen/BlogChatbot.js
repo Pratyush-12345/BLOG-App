@@ -5,7 +5,8 @@ import '../../Css/BlogChatbot.css';
 
 const BlogChatbot = () => {
     const [messages, setMessages] = useState([]);
-    const [input, setInput] = useState('');
+    const [selectedStory, setSelectedStory] = useState('');
+    const [stories, setStories] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
@@ -14,20 +15,24 @@ const BlogChatbot = () => {
         const token = localStorage.getItem("authToken");
         if (!token) {
             navigate('/login');
+        } else {
+            fetchStories();
         }
     }, [navigate]);
 
-    useEffect(() => {
-        setMessages([{ text: "Hello! How can I help you with the blog today?", user: false }]);
-    }, []);
+    const fetchStories = async () => {
+        try {
+            const { data } = await axios.get('/story/getAllStories');
+            setStories(data.data);
+        } catch (error) {
+            console.error('Error fetching stories:', error);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!input.trim()) return;
+        if (!selectedStory) return;
 
-        const userMessage = { text: input, user: true };
-        setMessages(prev => [...prev, userMessage]);
-        setInput('');
         setIsLoading(true);
 
         try {
@@ -37,7 +42,7 @@ const BlogChatbot = () => {
             }
 
             const { data } = await axios.post('/story/chatbot', 
-                { query: input },
+                { storyId: selectedStory },
                 {
                     headers: {
                         "Content-Type": "application/json",
@@ -45,15 +50,18 @@ const BlogChatbot = () => {
                     },
                 }
             );
-            const botMessage = { text: data.response, user: false };
+            const botMessage = { 
+                title: data.title,
+                summary: data.summary, 
+                user: false 
+            };
             setMessages(prev => [...prev, botMessage]);
         } catch (error) {
-
             if (error.response && error.response.status === 401) {
                 localStorage.removeItem("authToken");
                 navigate('/login');
             } else {
-                setMessages(prev => [...prev, { text: "I'm having trouble responding right now. Please try again later.", user: false }]);
+                setMessages(prev => [...prev, { text: "I'm having trouble summarizing right now. Please try again later.", user: false }]);
             }
         } finally {
             setIsLoading(false);
@@ -63,26 +71,30 @@ const BlogChatbot = () => {
     return (
         <div className={`chatbot-container ${isOpen ? 'open' : ''}`}>
             <button className="chatbot-toggle" onClick={() => setIsOpen(!isOpen)}>
-                {isOpen ? 'Close Chat' : 'Open Chat'}
+                {isOpen ? 'Close Summarizer' : 'Open Summarizer'}
             </button>
             {isOpen && (
                 <div className="chatbot-window">
                     <div className="chatbot-messages">
                         {messages.map((msg, index) => (
                             <div key={index} className={`message ${msg.user ? 'user' : 'bot'}`}>
-                                {msg.text}
+                                {msg.title && <h4>{msg.title}</h4>}
+                                {msg.summary}
                             </div>
                         ))}
                     </div>
                     <form onSubmit={handleSubmit} className="chatbot-input-form">
-                        <input
-                            type="text"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="Ask about the blog..."
-                        />
-                        <button type="submit" disabled={isLoading}>
-                            {isLoading ? 'Sending...' : 'Send'}
+                        <select 
+                            value={selectedStory} 
+                            onChange={(e) => setSelectedStory(e.target.value)}
+                        >
+                            <option value="">Select a story to summarize</option>
+                            {stories.map(story => (
+                                <option key={story._id} value={story._id}>{story.title}</option>
+                            ))}
+                        </select>
+                        <button type="submit" disabled={isLoading || !selectedStory}>
+                            {isLoading ? 'Summarizing...' : 'Summarize'}
                         </button>
                     </form>
                 </div>
@@ -92,4 +104,5 @@ const BlogChatbot = () => {
 };
 
 export default BlogChatbot;
+
 

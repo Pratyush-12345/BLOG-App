@@ -1,40 +1,32 @@
-const natural = require('natural');
+const axios = require('axios');
 const Story = require('../Models/story');
+const { SummarizerManager } = require('node-summarizer');
 
-const tokenizer = new natural.WordTokenizer();
-const TfIdf = natural.TfIdf;
+const stripHtmlTags = (html) => {
+    return html.replace(/<[^>]*>/g, '');
+};
+
+const summarizeText = (text) => {
+    const cleanText = stripHtmlTags(text);
+    const sentences = cleanText.split('.');
+    return sentences.slice(0, 3).join('. ') + '.';
+};
 
 const processChatbotQuery = async (req, res) => {
-    const { query } = req.body;
+    const { storyId } = req.body;
 
     try {
-        const stories = await Story.find().select('title content');
-        const tfidf = new TfIdf();
-
-        stories.forEach((story, index) => {
-            tfidf.addDocument(`${story.title} ${story.content}`);
-        });
-
-        const queryTokens = tokenizer.tokenize(query.toLowerCase());
-        const results = [];
-
-        tfidf.tfidfs(queryTokens, (i, measure) => {
-            results.push({ index: i, score: measure });
-        });
-
-        results.sort((a, b) => b.score - a.score);
-
-        let response = "Based on the blog content, here's what I found:\n\n";
-
-        if (results.length > 0 && results[0].score > 0) {
-            const topResult = stories[results[0].index];
-            response += `The most relevant post is "${topResult.title}".\n`;
-            response += `Here's a snippet: ${topResult.content.substring(0, 150)}...`;
-        } else {
-            response += "I couldn't find any directly relevant information to your query in the blog posts.";
+        const story = await Story.findById(storyId);
+        if (!story) {
+            return res.status(404).json({ error: 'Story not found' });
         }
 
-        res.json({ response });
+        const summary = await summarizeText(story.content);
+
+        res.json({ 
+            title: story.title,
+            summary: summary
+        });
     } catch (error) {
         console.error('Chatbot Error:', error);
         res.status(500).json({ error: 'An error occurred while processing your request.' });
@@ -42,3 +34,4 @@ const processChatbotQuery = async (req, res) => {
 };
 
 module.exports = { processChatbotQuery };
+
